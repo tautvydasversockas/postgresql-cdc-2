@@ -1,0 +1,23 @@
+{
+    "name": "postgres-outbox-connector",
+    "config": {
+        "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+        "database.hostname": "postgres",
+        "database.port": "5432",
+        "database.user": "postgres",
+        "database.password": "password",
+        "database.dbname": "postgres",
+        "database.server.name": "postgres",
+        "plugin.name": "pgoutput",
+        "topic.prefix": "postgres",
+        "slot.name": "user_service_slot",
+        "slot.drop.on.stop": "false",
+        "publication.name": "dummy_publication",
+        "include.logical.messages": "true",
+        "logical.decoding.msg.prefix.include": "true",
+        "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+        "value.converter": "org.apache.kafka.connect.storage.StringConverter",
+        "transforms": "wal",
+        "transforms.wal.type": "custom.smt.PostgresWalSmt"
+    }
+}

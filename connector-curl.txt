@@ -1,0 +1,6 @@
+curl -X POST \
+  -H "Content-Type: application/json" \
+  --data @register-connector.json \
+  http://localhost:8083/connectors
+
+curl -X DELETE http://localhost:8083/connectors/postgres-outbox-connector
