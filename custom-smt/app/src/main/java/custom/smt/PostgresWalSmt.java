@@ -11,7 +11,6 @@ import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.transforms.Transformation;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
 import java.util.Map;
 
 public class PostgresWalSmt<R extends ConnectRecord<R>> implements Transformation<R> {
@@ -20,22 +19,21 @@ public class PostgresWalSmt<R extends ConnectRecord<R>> implements Transformatio
 
     @Override
     public R apply(R record) {
-        Object value = record.value();
-        if (value == null) {
-            return record;
-        }
+        var value = record.value();
+        if (!(value instanceof Struct rootStruct)) {
+            if (value == null) {
+                return record;
+            }
 
-        if (!(value instanceof Struct)) {
             throw new DataException("Record is expected to be 'Struct'.");
         }
 
-        Struct rootStruct = (Struct) value;
-        Struct messageStruct = rootStruct.getStruct("message");
+        var messageStruct = rootStruct.getStruct("message");
         if (messageStruct == null) {
             throw new DataException("Missing 'message' section in record.");
         }
 
-        String prefixString = messageStruct.getString("prefix");
+        var prefixString = messageStruct.getString("prefix");
         if (prefixString == null) {
             throw new DataException("Missing 'prefix' section in message.");
         }
@@ -47,40 +45,34 @@ public class PostgresWalSmt<R extends ConnectRecord<R>> implements Transformatio
             throw new DataException("Failed to parse prefix JSON", e);
         }
 
-        String topic;
-        if (prefixNode.hasNonNull("topic")) {
-            topic = prefixNode.get("topic").asText();
-        } else {
+        var topicNode = prefixNode.get("topic");
+        if (topicNode == null || topicNode.isNull()) {
             throw new DataException("Missing 'topic' in prefix.");
         }
+        var topic = topicNode.asText();
 
-        String messageKey;
-        if (prefixNode.hasNonNull("message_key")) {
-            messageKey = prefixNode.get("message_key").asText();
-        } else {
+        var messageKeyNode = prefixNode.get("message_key");
+        if (messageKeyNode == null || messageKeyNode.isNull()) {
             throw new DataException("Missing 'message_key' in prefix.");
         }
+        var messageKey = messageKeyNode.asText();
 
-        JsonNode headersNode = prefixNode.get("message_headers");
+        var headersNode = prefixNode.get("message_headers");
         if (headersNode == null || !headersNode.isObject()) {
             throw new DataException("Missing 'message_headers' in prefix.");
         }
 
-        ConnectHeaders newHeaders = new ConnectHeaders();
-        Iterator<Map.Entry<String, JsonNode>> fields = headersNode.fields();
+        var newHeaders = new ConnectHeaders();
+        var fields = headersNode.fields();
         while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> field = fields.next();
-            String headerKey = field.getKey();
-            JsonNode headerValue = field.getValue();
-            newHeaders.add(headerKey, headerValue.asText(), Schema.STRING_SCHEMA);
+            var field = fields.next();
+            newHeaders.add(field.getKey(), field.getValue().asText(), Schema.STRING_SCHEMA);
         }
 
-        byte[] contentBytes = messageStruct.getBytes("content");
+        var contentBytes = messageStruct.getBytes("content");
         if (contentBytes == null) {
             throw new DataException("Missing 'content' in message.");
         }
-
-        String contentString = new String(contentBytes, StandardCharsets.UTF_8);
 
         return record.newRecord(
                 topic,
@@ -88,7 +80,7 @@ public class PostgresWalSmt<R extends ConnectRecord<R>> implements Transformatio
                 Schema.STRING_SCHEMA,
                 messageKey,
                 Schema.STRING_SCHEMA,
-                contentString,
+                new String(contentBytes, StandardCharsets.UTF_8),
                 record.timestamp(),
                 newHeaders);
     }

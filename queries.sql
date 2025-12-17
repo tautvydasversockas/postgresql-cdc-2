@@ -6,13 +6,4 @@ CREATE TABLE users (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE outbox (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    aggregate_type VARCHAR NOT NULL, 
-    aggregate_id VARCHAR NOT NULL, 
-    event_type VARCHAR NOT NULL, 
-    payload JSONB NOT NULL,                
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 ALTER ROLE postgres WITH REPLICATION;

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::{PgPool, Postgres, Transaction};
+use sqlx::PgPool;
 use uuid::Uuid;
 mod events;
 mod models;
@@ -9,7 +9,7 @@ use std::collections::HashMap;
 async fn main() -> Result<()> {
     let pool = PgPool::connect("postgres://postgres:password@localhost/postgres").await?;
 
-    let mut tx: Transaction<'_, Postgres> = pool.begin().await?;
+    let mut tx = pool.begin().await?;
 
     let user = models::User {
         id: Uuid::new_v4(),
@@ -23,8 +23,8 @@ async fn main() -> Result<()> {
         VALUES ($1, $2, $3)
         "#,
         user.id,
-        user.username,
-        user.email,
+        &user.username,
+        &user.email,
     )
     .execute(&mut *tx)
     .await?;
